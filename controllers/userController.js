@@ -26,36 +26,6 @@ exports.updateSteps = async (req, res) => {
 };
 
 
-
-// Update user steps
-exports.updateSteps = async (req, res) => {
-    const { steps } = req.body;
-    try {
-        const user = await User.findById(req.user.id);
-        user.steps = steps;
-        await user.save();
-        res.json(user);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-};
-
-// Update user exercise data
-exports.updateExercise = async (req, res) => {
-    const { calories, time } = req.body.exercise;
-    try {
-        const user = await User.findById(req.user.id);
-        user.exerciseCalories = calories;
-        user.exerciseTime = time;
-        await user.save();
-        res.json(user);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-};
-
 // Update user profile
 exports.updateProfile = async (req, res) => {
     const { height, weight, age } = req.body;
@@ -91,37 +61,6 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// get user exercise data
-exports.getUserExercises = async (req, res) => {
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-        res.status(404);
-        throw new Error('User not found');
-    }
-
-    res.json({
-        exercises: user.exercises,
-        totalCalories: user.exercises.reduce((total, exercise) => total + exercise.calories, 0),
-    });
-};
-
-// update user exercise data
-exports.updateUserExercises = async (req, res) => {
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-        res.status(404);
-        throw new Error('User not found');
-    }
-
-    const { exercise } = req.body;
-
-    user.exercises.push(exercise);
-    await user.save();
-
-    res.status(200).json(user.exercises);
-};
 
 // get water intake
 exports.getUserWaterIntake = async (req, res) => {
@@ -165,10 +104,42 @@ exports.updateUserWaterIntake = async (req, res) => {
     });
 };
 
+// get user exercise data
+exports.getUserExercises = async (req, res) => {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    res.json({
+        exercises: user.exercises,
+        totalCalories: user.exercises.reduce((total, exercise) => total + exercise.calories, 0),
+    });
+};
+
+// update user exercise data
+exports.updateUserExercises = async (req, res) => {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    const { exercise } = req.body;
+
+    user.exercises.push(exercise);
+    await user.save();
+
+    res.status(200).json(user.exercises);
+};
+
 
 // Update user stats and badges
 exports.updateUserStats = async (req, res) => {
-    const { steps, waterIntake } = req.body;
+    const { badgeName, newValue, steps, waterIntake } = req.body;
 
     try {
         const user = await User.findById(req.user.id);
@@ -177,19 +148,30 @@ exports.updateUserStats = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        if (steps !== undefined) user.currentStepCount = steps;
-        if (waterIntake !== undefined) user.waterIntake = waterIntake;
+        // Initialize badges field if it doesn't exist
+        if (!user.badges) {
+            user.badges = {};
+        }
 
-        // Unlock badges
-        const { currentStepCount, waterIntake: currentWaterIntake, badges } = user;
+        if (badgeName && newValue !== undefined) {
+            user.badges[badgeName] = newValue;
+        }
 
-        if (currentStepCount >= 1) badges['1000Steps'] = true;
-        if (currentStepCount >= 10) badges['3000Steps'] = true;
-        if (currentStepCount >= 30) badges['5000Steps'] = true;
- 
-        if (currentWaterIntake >= 100) badges['1000mlWater'] = true;
-        if (currentWaterIntake >= 200) badges['2000mlWater'] = true;
-        if (currentWaterIntake >= 300) badges['3000mlWater'] = true;
+        if (steps !== undefined) {
+            user.currentStepCount = steps;
+            // Award step badges
+            if (steps >= 10) user.badges['10Steps'] = true;
+            if (steps >= 30) user.badges['30Steps'] = true;
+            if (steps >= 50) user.badges['50Steps'] = true;
+        }
+
+        if (waterIntake !== undefined) {
+            user.waterIntake = waterIntake;
+            // Award water intake badges
+            if (waterIntake >= 1000) user.badges['1000mlWater'] = true;
+            if (waterIntake >= 2000) user.badges['2000mlWater'] = true;
+            if (waterIntake >= 3000) user.badges['3000mlWater'] = true;
+        }
 
         await user.save();
 

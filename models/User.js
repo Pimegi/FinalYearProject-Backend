@@ -23,15 +23,15 @@ const exerciseSchema = new mongoose.Schema({
 });
 
 const badgeSchema = new mongoose.Schema({
-  '1000Steps': {
+  '10Steps': {
     type: Boolean,
     default: true,
   },
-  '3000Steps': {
+  '30Steps': {
     type: Boolean,
     default: false,
   },
-  '5000Steps': {
+  '50Steps': {
     type: Boolean,
     default: false,
   },
